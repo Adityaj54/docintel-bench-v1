@@ -1,0 +1,17 @@
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+node_modules/
+dist/
+coverage/
+.coverage
+.idea/
+.junie/
+.DS_Store
+data/
+*.db
+test-results/
+playwright-report/
