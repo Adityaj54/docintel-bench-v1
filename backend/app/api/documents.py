@@ -1,14 +1,14 @@
-from uuid import UUID
 from urllib.parse import quote
+from uuid import UUID
 
-from fastapi import APIRouter, UploadFile, Query, Response
+from fastapi import APIRouter, Query, Response, UploadFile
 from sqlalchemy import select
 
 from app.api.pagination import Limit, Offset, page
 from app.auth.dependencies import AuthenticatedUser, Database
 from app.core.errors import DomainError
 from app.models import Document, GroundTruth
-from app.schemas.common import Page, Message
+from app.schemas.common import Message, Page
 from app.schemas.documents import DocumentRead, GroundTruthRead, GroundTruthWrite
 from app.services import documents, ground_truth
 from app.services.access import dataset_for, document_for

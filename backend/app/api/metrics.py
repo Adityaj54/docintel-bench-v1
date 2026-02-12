@@ -6,7 +6,7 @@ from fastapi import APIRouter, Query
 
 from app.auth.dependencies import AuthenticatedUser, Database
 from app.core.errors import DomainError
-from app.metrics.service import report, provider_metric, result_rows
+from app.metrics.service import provider_metric, report, result_rows
 from app.schemas.operations import MetricReport, RunComparison
 from app.services.access import project_for, run_for
 

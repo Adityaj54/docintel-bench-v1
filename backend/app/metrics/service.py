@@ -7,7 +7,12 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import (
-    Dataset, Document, EvaluationResult, ExtractionResult, ExtractionRun, ValidationResult,
+    Dataset,
+    Document,
+    EvaluationResult,
+    ExtractionResult,
+    ExtractionRun,
+    ValidationResult,
 )
 from app.schemas.operations import MetricReport, MetricSummary, ProviderMetric
 

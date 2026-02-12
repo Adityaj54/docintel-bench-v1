@@ -7,13 +7,28 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
 from starlette.exceptions import HTTPException
 
-from app.api import auth, datasets, documents, exports, health, metrics, operations, projects, runs, schemas
+from app.api import (
+    auth,
+    datasets,
+    documents,
+    exports,
+    health,
+    metrics,
+    operations,
+    projects,
+    runs,
+    schemas,
+)
 from app.auth.security import signing_key
 from app.core.body_limit import BodyLimitMiddleware
 from app.core.config import get_settings
 from app.core.errors import (
-    DomainError, domain_error_handler, error_response, http_error_handler,
-    integrity_error_handler, request_error_handler,
+    DomainError,
+    domain_error_handler,
+    error_response,
+    http_error_handler,
+    integrity_error_handler,
+    request_error_handler,
 )
 from app.core.logging import RequestContextMiddleware, configure_logging
 

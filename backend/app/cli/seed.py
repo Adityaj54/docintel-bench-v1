@@ -10,8 +10,15 @@ from app.audit.service import record
 from app.db.session import SessionLocal
 from app.jobs.queue import enqueue
 from app.models import (
-    Dataset, Document, ExtractionResult, ExtractionRun, ExtractionSchema,
-    GroundTruth, Project, ProviderConfiguration, User,
+    Dataset,
+    Document,
+    ExtractionResult,
+    ExtractionRun,
+    ExtractionSchema,
+    GroundTruth,
+    Project,
+    ProviderConfiguration,
+    User,
 )
 from app.providers.mock import mock_value
 from app.storage.factory import get_storage

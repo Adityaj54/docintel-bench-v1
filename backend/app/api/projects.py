@@ -2,8 +2,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query
 
-from app.auth.dependencies import AuthenticatedUser, Database
 from app.api.pagination import Limit, Offset
+from app.auth.dependencies import AuthenticatedUser, Database
 from app.schemas.common import Page
 from app.schemas.projects import ProjectCreate, ProjectRead, ProjectUpdate
 from app.services import projects
