@@ -18,8 +18,7 @@ export interface User extends Entity {
   display_name: string;
 }
 
-export interface Session {
-  user: User;
+export interface Session extends User {
   csrf_token: string;
 }
 
