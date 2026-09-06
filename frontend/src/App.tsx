@@ -10,6 +10,9 @@ import { DatasetDetail } from "./features/datasets/DatasetDetail";
 import { DocumentDetail } from "./features/documents/DocumentDetail";
 import { SchemasPage } from "./features/schemas/SchemasPage";
 import { SchemaEditor } from "./features/schemas/SchemaEditor";
+import { RunsPage } from "./features/runs/RunsPage";
+import { RunDetail } from "./features/runs/RunDetail";
+import { ResultDetail } from "./features/runs/ResultDetail";
 import { ErrorPanel, Loading } from "./components/Feedback";
 
 function RequireSession({ children }: { children: ReactElement }) {
@@ -49,6 +52,9 @@ export function App() {
       <Route path="schemas" element={<SchemasPage />} />
       <Route path="schemas/new" element={<SchemaEditor />} />
       <Route path="schemas/:schemaId" element={<SchemaEditor />} />
+      <Route path="runs" element={<RunsPage />} />
+      <Route path="runs/:runId" element={<RunDetail />} />
+      <Route path="results/:resultId" element={<ResultDetail />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>;
