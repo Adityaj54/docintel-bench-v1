@@ -44,14 +44,17 @@ async def upload(db: Session, user: User, dataset_id: UUID, file: UploadFile) ->
         if len(content) > maximum:
             raise DomainError("FILE_TOO_LARGE", "The document exceeds the upload size limit.", 413)
     inspected = inspect_file(file.filename or "", file.content_type or "", bytes(content))
-    if db.scalar(select(Document.id).where(
+    existing = db.scalar(select(Document).where(
         Document.dataset_id == dataset.id, Document.sha256 == inspected.sha256
-    )):
+    ))
+    if existing and not existing.deleted:
         raise DomainError("DUPLICATE_DOCUMENT", "This document already exists in the dataset.", 409)
-    identifier = uuid4()
-    key = f"documents/{dataset.project_id}/{identifier}/original"
+    identifier = existing.id if existing else uuid4()
+    key = f"documents/{dataset.project_id}/{identifier}/original-{uuid4()}"
     storage = get_storage()
     storage.put(key, bytes(content), inspected.mime_type)
+    if existing:
+        return _restore(db, user, dataset, existing, inspected, key, storage)
     document = Document(
         id=identifier,
         dataset_id=dataset.id,
@@ -81,6 +84,43 @@ async def upload(db: Session, user: User, dataset_id: UUID, file: UploadFile) ->
         db.rollback()
         storage.delete(key)
         raise
+    return document
+
+
+def _restore(db: Session, user: User, dataset, document: Document, inspected,
+             key: str, storage) -> Document:
+    """Re-upload of content matching a deleted document revives that row.
+
+    The (dataset_id, sha256) uniqueness constraint means a soft-deleted document
+    would otherwise reserve its content hash forever, rejecting the re-upload as a
+    duplicate of a document the account can no longer see.
+    """
+    previous_key = document.storage_key
+    document.original_filename = inspected.filename
+    document.mime_type = inspected.mime_type
+    document.size_bytes = inspected.size_bytes
+    document.storage_key = key
+    document.page_count = inspected.page_count
+    document.width = inspected.width
+    document.height = inspected.height
+    document.status = "queued"
+    document.artifacts = []
+    document.error = None
+    document.deleted = False
+    document.uploaded_by = user.id
+    try:
+        db.flush()
+        enqueue(db, "preprocess", document.id, f"preprocess:{document.id}:{uuid4()}")
+        record(db, project_id=dataset.project_id, user_id=user.id, action="document.restored",
+               entity_type="document", entity_id=document.id,
+               details={"filename": inspected.filename, "sha256": inspected.sha256})
+        db.commit()
+    except Exception:
+        db.rollback()
+        storage.delete(key)
+        raise
+    if previous_key and previous_key != key:
+        storage.delete(previous_key)
     return document
 
 
