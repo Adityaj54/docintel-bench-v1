@@ -167,3 +167,35 @@ def pdf_bytes(pages=1) -> bytes:
 def upload(client, dataset_id, filename, content, content_type):
     return client.post(f"/datasets/{dataset_id}/documents",
                        files={"file": (filename, content, content_type)})
+
+
+def drain(limit: int = 200) -> int:
+    """Run every queued job to completion, the way the worker would."""
+    from sqlalchemy import select
+
+    from app.jobs.runner import execute
+    from app.models import JobMessage
+
+    processed = 0
+    for _ in range(limit):
+        with SessionLocal() as session:
+            message = session.scalar(
+                select(JobMessage).where(JobMessage.status == "pending").order_by(JobMessage.available_at)
+            )
+            if not message:
+                return processed
+            identifier, kind = str(message.id), message.kind
+        execute(identifier, kind)
+        processed += 1
+    raise AssertionError("Job queue did not settle.")
+
+
+@pytest.fixture
+def provider(client, project):
+    response = client.post(f"/projects/{project['id']}/providers", json={
+        "name": "Mock baseline", "provider": "mock", "model": "mock-extract-1",
+        "options": {"max_tokens": 4096, "input_cost_per_million": 1.0,
+                    "output_cost_per_million": 2.0},
+    })
+    assert response.status_code == 201, response.text
+    return response.json()
