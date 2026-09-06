@@ -13,6 +13,8 @@ import { SchemaEditor } from "./features/schemas/SchemaEditor";
 import { RunsPage } from "./features/runs/RunsPage";
 import { RunDetail } from "./features/runs/RunDetail";
 import { ResultDetail } from "./features/runs/ResultDetail";
+import { MetricsPage } from "./features/metrics/MetricsPage";
+import { ComparePage } from "./features/compare/ComparePage";
 import { ErrorPanel, Loading } from "./components/Feedback";
 
 function RequireSession({ children }: { children: ReactElement }) {
@@ -55,6 +57,8 @@ export function App() {
       <Route path="runs" element={<RunsPage />} />
       <Route path="runs/:runId" element={<RunDetail />} />
       <Route path="results/:resultId" element={<ResultDetail />} />
+      <Route path="compare" element={<ComparePage />} />
+      <Route path="metrics" element={<MetricsPage />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>;
