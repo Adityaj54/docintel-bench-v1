@@ -1,5 +1,7 @@
 # DocIntel Bench
 
+[![CI](https://github.com/Adityaj54/docintel-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/Adityaj54/docintel-bench/actions/workflows/ci.yml)
+
 A document intelligence evaluation platform. Upload PDFs and images, define the JSON
 structure you expect to get back, run extraction through pluggable LLM providers, validate
 the output against your schema, score it against trusted ground truth, and compare runs on
@@ -344,6 +346,18 @@ Coverage: `docker compose run --rm --no-deps api pytest --cov=app`.
 
 Linting and type checks: `make lint` (ruff over `app` and `tests`, `tsc --noEmit` for the
 frontend, which builds under TypeScript `strict`).
+
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on every push to `main` or `develop` and on every pull
+request, in four parallel jobs:
+
+| Job | What it guards |
+|---|---|
+| **backend** | `ruff check`, then the pytest suite with coverage |
+| **frontend** | `tsc --noEmit` under `strict`, Vitest, and a production `vite build` |
+| **migrations** | `upgrade head` from an empty PostgreSQL, `downgrade base`, `upgrade head` again, then an autogenerate run that fails if a model change has no migration |
+| **stack** | `docker compose build` and `up`, waiting on `/api/health/ready` and the frontend, with container logs dumped on failure |
 
 ---
 
