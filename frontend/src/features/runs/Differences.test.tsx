@@ -72,4 +72,21 @@ describe("Differences", () => {
     show([difference({ path: "/lines/0", actual_path: "/lines/1" })]);
     expect(screen.getByText("matched against /lines/1")).toBeInTheDocument();
   });
+
+  it("shortens a long value rather than flooding the row", () => {
+    show([difference({ actual: "x".repeat(200), actual_type: "string" })]);
+    expect(screen.getByText("x".repeat(120) + "…")).toBeInTheDocument();
+  });
+
+  it("counts each kind of difference in the summary", () => {
+    show([
+      difference({ path: "/a", status: "missing" }),
+      difference({ path: "/b", status: "extra" }),
+      difference({ path: "/c", status: "changed" }),
+    ]);
+    const summary = screen.getByText("Show matching fields").closest(".toolbar") as HTMLElement;
+    expect(summary).toHaveTextContent("Missing 1");
+    expect(summary).toHaveTextContent("Extra 1");
+    expect(summary).toHaveTextContent("Changed 1");
+  });
 });

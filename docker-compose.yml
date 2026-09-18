@@ -3,7 +3,8 @@ name: docintel-bench
 x-backend: &backend
   build: ./backend
   environment: &environment
-    DATABASE_URL: postgresql+psycopg://docintel@postgres:5432/docintel
+    DATABASE_URL: postgresql+psycopg://postgres:5432/docintel
+    PGUSER: docintel
     REDIS_URL: redis://redis:6379/0
     STORAGE_ROOT: /data/documents
     SECRET_KEY: ${SECRET_KEY:-}

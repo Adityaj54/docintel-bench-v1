@@ -146,7 +146,8 @@ is ever stored in the database.**
 
 | Variable | Default | Notes |
 |---|---|---|
-| `DATABASE_URL` | `postgresql+psycopg://docintel@postgres:5432/docintel` | |
+| `DATABASE_URL` | `postgresql+psycopg://postgres:5432/docintel` | No credentials in the URL; the role comes from the libpq environment (`PGUSER`, `PGPASSWORD`) |
+| `PGUSER` | `docintel` (set by Compose) | PostgreSQL role, read by libpq rather than embedded in `DATABASE_URL` |
 | `REDIS_URL` | `redis://redis:6379/0` | Celery broker |
 | `SECRET_KEY` | *(blank)* | Session signing key. Blank generates one in a `0700` directory on the app volume; **required** and ≥32 chars when `ENVIRONMENT=production` |
 | `COOKIE_SECURE` | `false` | Set `true` behind HTTPS |
@@ -342,7 +343,19 @@ docker compose run --rm --no-deps api pytest
 docker compose run --rm --no-deps frontend npm test -- --run
 ```
 
-Coverage: `docker compose run --rm --no-deps api pytest --cov=app`.
+Coverage is on by default in both suites, so `make test` writes machine-readable reports to
+the host:
+
+| Report | Path |
+|---|---|
+| Backend Cobertura XML | `backend/coverage/coverage.xml` |
+| Backend LCOV | `backend/coverage/lcov.info` |
+| Frontend LCOV | `frontend/coverage/lcov.info` |
+| Frontend Cobertura XML | `frontend/coverage/cobertura-coverage.xml` |
+
+Those four files are the only coverage artifacts kept in the tree; the SQLite measurement
+database `coverage.py` writes lives under `$TMPDIR`, and the frontend watch loop skips coverage
+(`npm run test:watch`). CI uploads both directories as build artifacts.
 
 Linting and type checks: `make lint` (ruff over `app` and `tests`, `tsc --noEmit` for the
 frontend, which builds under TypeScript `strict`).
@@ -355,7 +368,7 @@ request, in four parallel jobs:
 | Job | What it guards |
 |---|---|
 | **backend** | `ruff check`, then the pytest suite with coverage |
-| **frontend** | `tsc --noEmit` under `strict`, Vitest, and a production `vite build` |
+| **frontend** | `tsc --noEmit` under `strict`, Vitest with coverage, and a production `vite build` |
 | **migrations** | `upgrade head` from an empty PostgreSQL, `downgrade base`, `upgrade head` again, then an autogenerate run that fails if a model change has no migration |
 | **stack** | `docker compose build` and `up`, waiting on `/api/health/ready` and the frontend, with container logs dumped on failure |
 
