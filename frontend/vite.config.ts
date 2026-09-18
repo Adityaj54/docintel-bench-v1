@@ -13,5 +13,14 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     css: false,
+    coverage: {
+      provider: "v8",
+      reportsDirectory: "./coverage",
+      // The reports directory is a bind mount under `make test`; removing it would fail.
+      clean: false,
+      reporter: ["text-summary", "lcovonly", "cobertura"],
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/main.tsx", "src/test/**", "src/types/**", "src/**/*.test.{ts,tsx}"],
+    },
   },
 });

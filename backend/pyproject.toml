@@ -35,7 +35,24 @@ include = ["app*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --cov=app --cov-report=term-missing --cov-report=xml --cov-report=lcov"
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+# The measurement database is a SQLite file; keep it out of the tree so only the
+# text reports below are ever checked in or archived.
+data_file = "${TMPDIR-/tmp}/docintel-coverage/data"
+
+[tool.coverage.report]
+show_missing = true
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError"]
+
+[tool.coverage.xml]
+output = "coverage/coverage.xml"
+
+[tool.coverage.lcov]
+output = "coverage/lcov.info"
 
 [tool.ruff]
 line-length = 100

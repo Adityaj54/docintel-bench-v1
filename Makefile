@@ -3,8 +3,9 @@ dev:
 	docker compose up --build
 
 test:
-	docker compose run --rm --no-deps api pytest
-	docker compose run --rm --no-deps frontend npm test -- --run
+	@mkdir -p backend/coverage frontend/coverage
+	docker compose run --rm --no-deps -v "$(CURDIR)/backend/coverage:/app/coverage" api pytest
+	docker compose run --rm --no-deps -v "$(CURDIR)/frontend/coverage:/app/coverage" frontend npm test -- --run
 
 lint:
 	docker compose run --rm --no-deps api ruff check app tests
