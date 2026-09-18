@@ -1,12 +1,3 @@
-# DocIntel Bench environment image.
-#
-# The repository is supplied by the platform at /app, so this file only installs
-# dependencies. It must serve both halves of the stack, and no single language
-# default carries both: python:3.12-slim has no Node, node:24-bookworm-slim ships
-# Python 3.11 (below the project's requires-python >= 3.12), and Debian's apt
-# offers only nodejs 20. This base is pinned by digest and provides
-# Python 3.12.14 and Node v24.20.0, matching backend/Dockerfile and
-# frontend/Dockerfile exactly.
 FROM nikolaik/python-nodejs@sha256:533a583ad1d2b8de20bfbf26cc3c5d4f61c56135d8a0cf1dff83d91ebd93b68f
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
