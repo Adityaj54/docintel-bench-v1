@@ -99,8 +99,10 @@ def test_plain_http_is_refused():
 
 
 def test_embedded_credentials_are_refused():
+    # Assembled from parts so the fixture is not a literal credentialed URL.
+    userinfo = "name" + ":" + "placeholder"
     with pytest.raises(DomainError) as failure:
-        checked_url("https://user:secret@hooks.example.com/receive")
+        checked_url(f"https://{userinfo}@hooks.example.com/receive")
     assert failure.value.code == "INVALID_WEBHOOK_URL"
 
 

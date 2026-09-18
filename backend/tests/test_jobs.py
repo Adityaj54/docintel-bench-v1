@@ -91,8 +91,10 @@ def test_a_permanent_failure_is_not_retried(monkeypatch, message):
 
 
 def test_an_unexpected_error_does_not_leak_its_message(monkeypatch, message):
+    internal_detail = "internal-detail-that-must-not-surface"
+
     def broken(db, entity):
-        raise RuntimeError("connection string postgres://user:secret@host/db")
+        raise RuntimeError(f"the driver refused: {internal_detail}")
 
     monkeypatch.setitem(runner.HANDLERS, "preprocess", broken)
     execute(message, "preprocess")
@@ -100,7 +102,7 @@ def test_an_unexpected_error_does_not_leak_its_message(monkeypatch, message):
     stored = reload(message)
     assert stored.status == "failed"
     assert stored.error["code"] == "JOB_FAILED"
-    assert "secret" not in stored.error["message"]
+    assert internal_detail not in stored.error["message"]
 
 
 def test_transient_failures_stop_at_the_attempt_ceiling(monkeypatch, message):

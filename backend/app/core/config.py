@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     app_name: str = "DocIntel Bench"
     environment: str = "development"
-    database_url: str = "postgresql+psycopg://docintel@postgres:5432/docintel"
+    database_url: str = "postgresql+psycopg://postgres:5432/docintel"
     redis_url: str = "redis://redis:6379/0"
     storage_backend: str = "local"
     storage_root: Path = Path("/data/documents")
