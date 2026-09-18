@@ -6,6 +6,13 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.evaluation.significance import (
+    CONFIDENCE,
+    SIGNIFICANCE,
+    compare_paired,
+    holm_adjusted,
+    quantile,
+)
 from app.models import (
     Dataset,
     Document,
@@ -14,17 +21,28 @@ from app.models import (
     ExtractionRun,
     ValidationResult,
 )
-from app.schemas.operations import MetricReport, MetricSummary, ProviderMetric
+from app.schemas.operations import (
+    MetricReport,
+    MetricSignificance,
+    MetricSummary,
+    ProviderMetric,
+    RunSignificance,
+)
+
+# Metrics that can be compared document by document, with the direction that counts
+# as an improvement and how one result contributes a value.
+PAIRED_METRICS = [
+    ("average_score", "Evaluation score", "higher", lambda row: row.score),
+    ("validity_rate", "Schema validity", "higher",
+     lambda row: None if row.valid is None else float(row.valid)),
+    ("success_rate", "Completion rate", "higher", lambda row: float(row.status == "completed")),
+    ("average_latency_ms", "Latency", "lower", lambda row: row.latency_ms),
+    ("cost_per_document", "Cost per document", "lower", lambda row: float(row.estimated_cost or 0)),
+]
 
 
 def percentile(values: list[float], fraction: float) -> float | None:
-    if not values:
-        return None
-    ordered = sorted(values)
-    index = (len(ordered) - 1) * fraction
-    lower = int(index)
-    upper = min(lower + 1, len(ordered) - 1)
-    return ordered[lower] + (ordered[upper] - ordered[lower]) * (index - lower)
+    return quantile(sorted(values), fraction) if values else None
 
 
 def average(values: list[float]) -> float | None:
@@ -125,3 +143,81 @@ def report(db: Session, project_id: UUID, since: datetime | None = None,
         errors=[{"label": label, "count": count} for label, count in errors.most_common()],
         providers=[provider_metric(group, *key) for key, group in sorted(groups.items())],
     )
+
+
+def paired_values(db: Session, run_ids: list[UUID]) -> dict[UUID, dict[str, dict[UUID, float]]]:
+    """Every paired metric, per run, keyed by the document it was measured on."""
+    query = select(
+        ExtractionResult.run_id, ExtractionResult.document_id, ExtractionResult.status,
+        ExtractionResult.latency_ms, ExtractionResult.estimated_cost,
+        ValidationResult.valid, EvaluationResult.score,
+    ).outerjoin(
+        ValidationResult, ValidationResult.result_id == ExtractionResult.id
+    ).outerjoin(
+        EvaluationResult, EvaluationResult.result_id == ExtractionResult.id
+    ).where(ExtractionResult.run_id.in_(run_ids))
+    values: dict[UUID, dict[str, dict[UUID, float]]] = {
+        run_id: {name: {} for name, *_ in PAIRED_METRICS} for run_id in run_ids
+    }
+    for row in db.execute(query):
+        for name, _, _, measure in PAIRED_METRICS:
+            measured = measure(row)
+            if measured is not None:
+                values[row.run_id][name][row.document_id] = float(measured)
+    return values
+
+
+def verdict(direction: str, difference: float, adjusted: float,
+            low: float, high: float) -> str:
+    """Name the winner only when the evidence supports one."""
+    if adjusted > SIGNIFICANCE or low <= 0 <= high:
+        return "inconclusive"
+    improved = difference > 0 if direction == "higher" else difference < 0
+    return "better" if improved else "worse"
+
+
+def significance_report(db: Session, runs: list) -> list[RunSignificance]:
+    """Compare every run against the first, document by document.
+
+    Each candidate is tested on its own, and the p-values within one candidate
+    carry a Holm-Bonferroni adjustment so that comparing five metrics at once
+    does not manufacture a winner.
+    """
+    baseline, *candidates = runs
+    values = paired_values(db, [run.id for run in runs])
+    report = []
+    for candidate in candidates:
+        measured = []
+        for name, label, direction, _ in PAIRED_METRICS:
+            result = compare_paired(values[baseline.id][name], values[candidate.id][name])
+            if result:
+                measured.append((name, label, direction, result))
+        adjusted_values = holm_adjusted([item[3].p_value for item in measured])
+        report.append(RunSignificance(
+            run_id=candidate.id,
+            name=candidate.name,
+            baseline_run_id=baseline.id,
+            baseline_name=baseline.name,
+            paired_documents=len(
+                set(values[baseline.id]["success_rate"]) & set(values[candidate.id]["success_rate"])
+            ),
+            metrics=[MetricSignificance(
+                metric=name,
+                label=label,
+                direction=direction,
+                pairs=result.pairs,
+                baseline_mean=result.baseline_mean,
+                candidate_mean=result.candidate_mean,
+                difference=result.difference,
+                confidence=CONFIDENCE,
+                confidence_low=result.confidence_low,
+                confidence_high=result.confidence_high,
+                p_value=result.p_value,
+                adjusted_p_value=adjusted,
+                exact=result.exact,
+                minimum_detectable_effect=result.minimum_detectable_effect,
+                verdict=verdict(direction, result.difference, adjusted,
+                                result.confidence_low, result.confidence_high),
+            ) for (name, label, direction, result), adjusted in zip(measured, adjusted_values)],
+        ))
+    return report

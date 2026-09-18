@@ -237,6 +237,33 @@ export interface RunComparison {
   metrics: ProviderMetric;
 }
 
+export interface MetricSignificance {
+  metric: string;
+  label: string;
+  direction: "higher" | "lower";
+  pairs: number;
+  baseline_mean: number;
+  candidate_mean: number;
+  difference: number;
+  confidence: number;
+  confidence_low: number;
+  confidence_high: number;
+  p_value: number;
+  adjusted_p_value: number;
+  exact: boolean;
+  minimum_detectable_effect: number | null;
+  verdict: "better" | "worse" | "inconclusive";
+}
+
+export interface RunSignificance {
+  run_id: string;
+  name: string;
+  baseline_run_id: string;
+  baseline_name: string;
+  paired_documents: number;
+  metrics: MetricSignificance[];
+}
+
 export interface Audit extends Entity {
   action: string;
   entity_type: string;

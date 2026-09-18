@@ -1,6 +1,7 @@
 import type {
-  Audit, Dataset, Delivery, Document, Evaluation, GroundTruth, MetricReport, Page, Project,
-  Provider, Result, Run, RunComparison, Schema, Session, Settings, ValidationReport, Webhook,
+  Audit, Dataset, Delivery, Document, Evaluation, GroundTruth, MetricReport, MetricSignificance,
+  Page, Project, Provider, Result, Run, RunComparison, RunSignificance, Schema, Session, Settings,
+  ValidationReport, Webhook,
 } from "../types/domain";
 
 const created = "2026-03-01T10:00:00Z";
@@ -274,6 +275,39 @@ export function aComparison(overrides: Partial<RunComparison> = {}): RunComparis
     name: "Baseline run",
     status: "completed",
     metrics: aMetricReport().providers[0],
+    ...overrides,
+  };
+}
+
+export function aMetricSignificance(overrides: Partial<MetricSignificance> = {}): MetricSignificance {
+  return {
+    metric: "average_score",
+    label: "Evaluation score",
+    direction: "higher",
+    pairs: 24,
+    baseline_mean: 0.76,
+    candidate_mean: 0.83,
+    difference: 0.07,
+    confidence: 0.95,
+    confidence_low: 0.03,
+    confidence_high: 0.11,
+    p_value: 0.002,
+    adjusted_p_value: 0.008,
+    exact: false,
+    minimum_detectable_effect: 0.04,
+    verdict: "better",
+    ...overrides,
+  };
+}
+
+export function aRunSignificance(overrides: Partial<RunSignificance> = {}): RunSignificance {
+  return {
+    run_id: "r2",
+    name: "Noisy run",
+    baseline_run_id: "r1",
+    baseline_name: "Baseline run",
+    paired_documents: 24,
+    metrics: [aMetricSignificance()],
     ...overrides,
   };
 }

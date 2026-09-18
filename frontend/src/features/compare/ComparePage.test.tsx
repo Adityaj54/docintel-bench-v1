@@ -3,7 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ComparePage } from "./ComparePage";
 import { failure, mockApi, renderInProject } from "../../test/harness";
-import { aComparison, aMetricReport, aRun, page } from "../../test/factories";
+import { aComparison, aMetricReport, aRun, aRunSignificance, page } from "../../test/factories";
 
 const runs = page([aRun(), aRun({ id: "r2", name: "Noisy run" })]);
 const faster = {
@@ -19,6 +19,7 @@ const routes = {
     aComparison(),
     aComparison({ run_id: "r2", name: "Noisy run", metrics: faster }),
   ],
+  "GET /projects/p1/comparison/significance": [aRunSignificance()],
 };
 
 const show = () => renderInProject(<ComparePage />, { path: "compare", route: "/projects/p1/compare" });
@@ -96,5 +97,39 @@ describe("ComparePage", () => {
     await userEvent.click(screen.getByRole("checkbox", { name: "Compare Noisy run" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("The comparison failed.");
+  });
+  it("tests the selected runs against the first one", async () => {
+    const mock = mockApi(routes);
+    show();
+
+    await userEvent.click(await screen.findByRole("checkbox", { name: "Compare Baseline run" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Compare Noisy run" }));
+
+    expect(await screen.findByRole("heading", { name: "Noisy run vs Baseline run" })).toBeInTheDocument();
+    expect(screen.getByText(/The first run selected is the baseline/)).toBeInTheDocument();
+    expect(mock.callsTo("GET /projects/p1/comparison/significance")[0].url)
+      .toContain("run_ids=r1&run_ids=r2");
+  });
+
+  it("offers a retry when the significance test fails", async () => {
+    mockApi({
+      ...routes,
+      "GET /projects/p1/comparison/significance":
+        failure(500, "SERVER_ERROR", "The significance test failed."),
+    });
+    show();
+
+    await userEvent.click(await screen.findByRole("checkbox", { name: "Compare Baseline run" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Compare Noisy run" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("The significance test failed.");
+  });
+
+  it("asks for no test until two runs are selected", async () => {
+    const mock = mockApi(routes);
+    show();
+    await screen.findByRole("checkbox", { name: "Compare Baseline run" });
+
+    expect(mock.callsTo("GET /projects/p1/comparison/significance")).toHaveLength(0);
   });
 });

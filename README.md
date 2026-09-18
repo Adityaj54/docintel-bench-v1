@@ -334,6 +334,34 @@ audit log.
 
 ---
 
+## Is the difference real?
+
+Averages alone cannot tell a better configuration from a luckier one, so
+`GET /projects/{id}/comparison/significance?run_ids=…` tests each run against the first one
+selected. `backend/app/evaluation/significance.py` implements it in the standard library, and
+every number it returns is reproducible: the resampling is seeded.
+
+Runs are compared **document by document**, not run against run. Two runs over the same
+dataset produce one result per document each, and pairing on the document removes the
+variance that comes from documents differing in difficulty — usually far larger than the
+difference between two providers. Only documents that both runs measured are counted.
+
+Per metric (evaluation score, schema validity, completion rate, latency, cost per document):
+
+| Output | How |
+|---|---|
+| Interval around the mean difference | Bias-corrected and accelerated (BCa) bootstrap, 2 000 resamples, with jackknife acceleration; falls back to the percentile interval when the correction is undefined |
+| `p_value` | Two-sided paired sign-flip permutation test — exhaustive for ≤ 14 pairs, otherwise sampled with the conservative `(hits + 1) / (resamples + 1)` estimate |
+| `adjusted_p_value` | Holm-Bonferroni across the metrics tested for that run, so comparing five metrics at once does not manufacture a winner |
+| `minimum_detectable_effect` | The smallest mean difference the paired documents could have found at 5% significance and 80% power — what an inconclusive row is really saying |
+| `verdict` | `better` or `worse` only when the adjusted p-value clears 5% **and** the interval excludes zero; otherwise `inconclusive` |
+
+The compare screen renders this under the side-by-side table, with the direction that counts
+as an improvement marked per metric — a cheaper run that got cheaper by failing every
+document is reported as worse on completion, not better on cost.
+
+---
+
 ## Running tests
 
 ```bash

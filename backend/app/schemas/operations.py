@@ -101,6 +101,33 @@ class RunComparison(InputModel):
     metrics: ProviderMetric
 
 
+class MetricSignificance(InputModel):
+    metric: str
+    label: str
+    direction: Literal["higher", "lower"]
+    pairs: int
+    baseline_mean: float
+    candidate_mean: float
+    difference: float
+    confidence: float
+    confidence_low: float
+    confidence_high: float
+    p_value: float
+    adjusted_p_value: float
+    exact: bool
+    minimum_detectable_effect: float | None
+    verdict: Literal["better", "worse", "inconclusive"]
+
+
+class RunSignificance(InputModel):
+    run_id: UUID
+    name: str
+    baseline_run_id: UUID
+    baseline_name: str
+    paired_documents: int
+    metrics: list[MetricSignificance]
+
+
 class SettingsRead(InputModel):
     providers: dict[str, bool]
     storage_backend: str

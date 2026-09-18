@@ -5,8 +5,9 @@ import { ErrorPanel, Empty, Loading, PageHeader, Section } from "../../component
 import { Status } from "../../components/Status";
 import { useResource } from "../../hooks/useResource";
 import { useProject } from "../../layouts/Workspace";
-import type { Page, ProviderMetric, Run, RunComparison } from "../../types/domain";
+import type { Page, ProviderMetric, Run, RunComparison, RunSignificance } from "../../types/domain";
 import { count, dateTime, latency, money, percent, title } from "../../utils/format";
+import { Significance } from "./Significance";
 
 type Row = {
   key: keyof ProviderMetric;
@@ -46,6 +47,10 @@ export function ComparePage() {
   const parameters = selected.map(id => "run_ids=" + encodeURIComponent(id)).join("&");
   const comparison = useResource<RunComparison[]>(
     selected.length >= 2 ? "/projects/" + project.id + "/comparison?" + parameters : null);
+  const significance = useResource<RunSignificance[]>(
+    selected.length >= 2
+      ? "/projects/" + project.id + "/comparison/significance?" + parameters
+      : null);
 
   function toggle(id: string) {
     setSelected(previous => previous.includes(id)
@@ -142,6 +147,18 @@ export function ComparePage() {
               </table>
             </div>
           </Section>}
+
+        <ErrorPanel error={significance.error} retry={significance.refresh} />
+        {significance.loading
+          ? <Loading label="Testing the differences…" />
+          : significance.data && <>
+            <div className="notice">
+              The first run selected is the baseline. Each metric is compared document by
+              document, so only the documents both runs processed count, and a verdict appears
+              only when the interval excludes zero after adjusting for the metrics tested.
+            </div>
+            <Significance comparisons={significance.data} />
+          </>}
       </>}
   </>;
 }
